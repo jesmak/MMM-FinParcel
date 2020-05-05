@@ -212,7 +212,7 @@ module.exports = NodeHelper.create({
 				let matkahuoltoParcel = JSON.parse(body);
 				parcel.latestEvent = matkahuoltoParcel.trackingEvents[0].description,
 				parcel.latestEventCity = matkahuoltoParcel.trackingEvents[0].place,
-				parcel.shipmentDate = new Date(matkahuoltoParcel.trackingEvents.slice(-1)[0].date + ' ' + matkahuoltoParcel.trackingEvents.slice(-1)[0].time)				
+				parcel.shipmentDate = self.getMatkahuoltoEventDate(matkahuoltoParcel.trackingEvents.slice(-1)[0].date, matkahuoltoParcel.trackingEvents.slice(-1)[0].time)				
 			}
 			
 			if (parcels.every(p => p.detailsRetrieved)) {
@@ -236,6 +236,10 @@ module.exports = NodeHelper.create({
 		}
 	},
 	
+	getMatkahuoltoEventDate: function(date, time) {
+		return date.substr(6, 4) + '-' + date.substr(3, 2) + '-' + date.substr(0, 2) + 'T' + time.substr(0, 2) + ':' + time.substr(3, 2) + ':00Z';
+	},
+	
 	timestampToDate: function(timestamp) {
 		var date = new Date(0);
 		date.setUTCSeconds(timestamp);
@@ -251,7 +255,7 @@ module.exports = NodeHelper.create({
 		}
 
 		this.parcels = this.parcels.sort(function(a, b) {
-			return a.status != b.status ? b.status - a.status : b.shipmentDate.getTime() - a.shipmentDate.getTime();
+			return a.status != b.status ? b.status - a.status : b.lastEventDate.getTime() - a.lastEventDate.getTime();
 		});
 		
 		if (config.limit > 0) {
