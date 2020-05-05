@@ -1,0 +1,28 @@
+.finParcelIconCell {
+	width: 27px;
+}
+
+.finParcelHeader {
+	color: #aaa;
+	padding-top: 0.7em;
+}
+
+.finParcelLabel {
+	color: grey;
+	font-weight: 300;
+	max-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.finParcelTimeCell {
+	text-align: right;
+	font-weight: 100;
+	padding-top: 0.7em;
+	padding-left: 10px;
+}
+
+.finParcelHeaderIcon {
+	padding-top: 0.7em;
+}

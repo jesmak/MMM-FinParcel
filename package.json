@@ -1,0 +1,25 @@
+{
+  "name": "MMM-FinParcel",
+  "version": "0.0.1",
+  "description": "The 'MMM-FinParcel' module tracks packages being delivered to you by Posti or Matkahuolto in Finland",
+  "main": "MMM-FinParcel.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jesmak/MMM-FinParcel.git"
+  },
+  "keywords": [
+    "magic mirror",
+    "module",
+    "parcel",
+    "posti",
+    "matkahuolto"
+  ],
+  "author": "Jesse Mäkinen",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jesmak/MMM-FinParcel/issues"
+  },
+  "dependencies": {
+    "request": "^2.81.0"
+  }
+}
