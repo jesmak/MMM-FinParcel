@@ -31,16 +31,18 @@ then add the module to your MagicMirror's configuration. Here is an example:
             header: 'My deliveries',
             position: 'top_left',
             config: {
-				postiUserName: String,
-				postiPassword: String,
-				matkahuoltoUserName: String,
-				matkahuoltoPassword: String,
-				limit: Number,
-				updateInterval: Number,
-				showDeliveredDays: Number,
-				statusTranslations: String[],
-				language: 'en|fi|sv',
-				showFromTo: Boolean
+                postiUserName: String,
+                postiPassword: String,
+                matkahuoltoUserName: String,
+                matkahuoltoPassword: String,
+                limit: Number,
+                updateInterval: Number,
+                showDeliveredDays: Number,
+                statusTranslations: String[],
+                language: 'en|fi|sv',
+                loadingTranslation: String,
+                noParcelsTranslation: String,
+                showFromTo: Boolean
             }
         }
     ]
@@ -60,7 +62,7 @@ You should configure either a Posti or a Matkahuolto account (or both) for it to
 | limit | Limit the number of deliveries to display. If less than 1, then all deliveries are displayed. | `7` | No |
 | updateInterval | Interval for updating delivery statuses. This value is in minutes. | `180` | No |
 | showDeliveredDays | Number of days that delivered packages are shown. If negative, packages are shown for as long as they are available in the APIs. | `7` | No |
-| statusTranslations | Translations for package statuses. | `["Expired", "Delivered", "Exception", "Failed to deliver", "Being delivered", "In transit", "Pending", "Info received"]` | No |
+| statusTranslations | Translations for package statuses. | `["Delivered", "Info received", "Pending", "In transit", "Being delivered", "Ready for pickup", "Exception"]` | No |
 | language | Language used when getting delivery statuses. Can be either `en`, `fi` or `sv`. | `en` | No |
 | loadingTranslation | Translation for when module has just started and parcel data is still loading. | `Loading parcel data...` | No |
 | noParcelsTranslation | Translation for when parcel data has been loaded but there are no results. | `No parcel data found` | No |

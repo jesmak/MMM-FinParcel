@@ -10,6 +10,7 @@ module.exports = NodeHelper.create({
 	postiQueryUrl: 'https://oma.posti.fi/graphql/v2',
 	querying: false,
 	postiToken: null,
+	matkahuoltoToken: null,
 	matkahuoltoLoginUrl: 'https://wwwservice.matkahuolto.fi/user/auth',
 	matkahuoltoQueryUrl: 'https://wwwservice.matkahuolto.fi/history/parcel/received/',
 	matkahuoltoDetailsQueryUrl: 'https://wwwservice.matkahuolto.fi/search/trackingInfo?parcelNumber=', 
@@ -80,9 +81,10 @@ module.exports = NodeHelper.create({
 		
 		request(options, function (error, response, body) {
 
+			self.postiToken = null;
+
 			if (error) {
 				console.error(error);
-				self.postiToken = null;
 				self.querying = false;
 			}
 			else {
@@ -118,12 +120,20 @@ module.exports = NodeHelper.create({
 
 	getPostiStatus: function(status) {
 		switch (status) {
-			case 'DELIVERED':
+			case 'WAITING':
 				return 1;
+			case 'RECEIVED':
+				return 2;
 			case 'IN_TRANSPORT':
+				return 3;
+			case 'READY_FOR_PICKUP':
 				return 5;
+			case 'RETURNED_TO_SENDER':
+				return 6;
+			case 'DELIVERED':
+				return 0;
 			default:
-				return 8; // Unknown
+				return 7; // Unknown
 		}
 	},
 
@@ -177,7 +187,6 @@ module.exports = NodeHelper.create({
 						receiverCity: p.receiverCity,
 						senderCity: p.senderCity,
 						shipmentNumber: p.shipmentNumber,
-						latestEventDate: self.timestampToDate(p.shipmentDate / 1000),
 						status: self.getMatkahuoltoStatus(p.shipmentStatus),
 						rawStatus: p.shipmentStatus,
 						detailsRetrieved: false
@@ -212,6 +221,7 @@ module.exports = NodeHelper.create({
 				let matkahuoltoParcel = JSON.parse(body);
 				parcel.latestEvent = matkahuoltoParcel.trackingEvents[0].description,
 				parcel.latestEventCity = matkahuoltoParcel.trackingEvents[0].place,
+				parcel.latestEventDate = self.getMatkahuoltoEventDate(matkahuoltoParcel.trackingEvents[0].date, matkahuoltoParcel.trackingEvents[0].time),
 				parcel.shipmentDate = self.getMatkahuoltoEventDate(matkahuoltoParcel.trackingEvents.slice(-1)[0].date, matkahuoltoParcel.trackingEvents.slice(-1)[0].time)				
 			}
 			
@@ -219,20 +229,32 @@ module.exports = NodeHelper.create({
 				self.parcels = self.parcels.concat(parcels);
 				self.sendParcelsNotification(config);
 				self.querying = false;
+				self.matkahuoltoToken = null;
 			}
 		});	
 	},
 	
 	getMatkahuoltoStatus: function(status) {
-		switch (status) {
-			case '02':
-				return 7; // Info received
-			case '20':
-				return 6; // Pending
-			case '30':
-				return 5; // In transit
-			default:
-				return 8; // Unknown
+
+		var code = parseInt(status);
+
+		if (code >= 60) {
+			return 0;
+		}
+		else if (code >= 50) {
+			return 5;
+		}
+		else if (code >= 40) {
+			return 4;
+		}
+		else if (code >= 30) {
+			return 3;
+		}
+		else if (code >= 20) {
+			return 2;
+		}
+		else {
+			return 1;
 		}
 	},
 	
@@ -242,7 +264,7 @@ module.exports = NodeHelper.create({
 	
 	timestampToDate: function(timestamp) {
 		var date = new Date(0);
-		date.setUTCSeconds(timestamp);
+		date.setUTCSeconds(Math.round(timestamp));
 		return date;
 	},
 	
@@ -255,7 +277,7 @@ module.exports = NodeHelper.create({
 		}
 
 		this.parcels = this.parcels.sort(function(a, b) {
-			return a.status != b.status ? b.status - a.status : b.lastEventDate.getTime() - a.lastEventDate.getTime();
+			return a.status != b.status ? b.status - a.status : b.latestEventDate.getTime() - a.latestEventDate.getTime();
 		});
 		
 		if (config.limit > 0) {

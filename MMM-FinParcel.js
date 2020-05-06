@@ -10,7 +10,7 @@ Module.register('MMM-FinParcel',{
     	limit: 7,
     	updateInterval: 180,
 		showDeliveredDays: 7,
-		statusTranslations: ["Expired", "Delivered", "Exception", "Failed to deliver", "Being delivered", "In transit", "Pending", "Info received"],
+		statusTranslations: ["Delivered", "Info received", "Pending", "In transit", "Being delivered", "Ready for pickup", "Exception"],
 		loadingTranslation: "Loading parcel data...",
 		noParcelsTranslation: "No parcel data found",
 		language: "en",
@@ -21,9 +21,11 @@ Module.register('MMM-FinParcel',{
 	loaded: false,
 	
 	parcelIcons: [ 
-		"fa fa-history fa-fw", "fa fa-check-square-o fa-fw", "fa fa-exclamation-triangle fa-fw", "fa fa-bolt fa-fw", "fa fa-truck fa-fw", "fa fa-exchange fa-fw", "fa fa-clock-o fa-fw", "fa fa-file-text-o fa-fw", "fa fa-question-circle fa-fw"
+		"fa fa-check-square-o fa-fw", "fa fa-file-text-o fa-fw", "fa fa-clock-o fa-fw", "fa fa-exchange fa-fw", "fa fa-truck fa-fw", 
+		"fa fa-check-square-o fa-fw", "fa fa-exclamation-triangle fa-fw", "fa fa-question-circle fa-fw"
 	],
-	parcelIconColors: ["grey", "grey", "red", "red", "green", "green", "cornflowerblue", "cornflowerblue", "red"],
+
+	parcelIconColors: ["grey", "cornflowerblue", "cornflowerblue", "green", "green", "green", "red", "red"],
 
     start: function() {
 		var self = this;
@@ -86,7 +88,7 @@ Module.register('MMM-FinParcel',{
 				self.addIconCell(header, self.parcelIcons[parcel.status] + ' finParcelHeaderIcon', self.parcelIconColors[parcel.status]);
 				self.addValueCell(
 					header, 
-					parcel.shipmentNumber + ' (' + (parcel.status == 8 ? parcel.rawStatus : self.config.statusTranslations[parcel.status]) + ')',
+					parcel.shipmentNumber + ' (' + (parcel.status == 7 ? parcel.rawStatus : self.config.statusTranslations[parcel.status]) + ')',
 					'finParcelHeader');
 				
 				let dateCell = document.createElement('td');
