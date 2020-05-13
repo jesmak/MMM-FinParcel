@@ -5,7 +5,7 @@ const request = require('request');
 
 module.exports = NodeHelper.create({
 
-    postiQuery: '{"query":"{ shipment { courier { country, name } shipmentType shipmentNumber grossWeight height width depth volume parties { name role location { city country } } departure { city country } destination { city country } trackingNumbers events { eventLocation { city country } eventShortName { lang value } timestamp } status { statusCode description { lang value } } shipmentPhase estimatedDeliveryTime lastPickupDate savedDateTime updatedDateTime confirmedEarliestDeliveryTime confirmedLatestDeliveryTime } }"}',	
+    postiQuery: '{"query":"{ shipment { courier { country, name } shipmentType shipmentNumber grossWeight height width depth volume parties { name role location { city country } } departure { city country } destination { city country } trackingNumbers events { eventLocation { city country } eventShortName { lang value } eventDescription { lang value } timestamp } status { statusCode description { lang value } } shipmentPhase estimatedDeliveryTime lastPickupDate savedDateTime updatedDateTime confirmedEarliestDeliveryTime confirmedLatestDeliveryTime } }"}',	
 	postiLoginUrl: 'https://oma.posti.fi/api/auth/v1/login',
 	postiQueryUrl: 'https://oma.posti.fi/graphql/v2',
 	querying: false,
@@ -92,15 +92,15 @@ module.exports = NodeHelper.create({
 				self.parcels = postiParcels.data.shipment.map(p => { 
 					return {
 						sender: p.parties.find(x => x.role == 'CONSIGNOR').name.join(", "), 
-						destination: (p.parties.find(x => x.role == 'DELIVERY') || p.parties.find(x => x.role == 'CONSIGNEE')).name.slice(-1)[0], 
+						destination: (p.parties.find(x => x.role == 'DELIVERY') || p.parties.find(x => x.role == 'CONSIGNEE')).name.join(", "), 
 						receiverCity: p.destination.city,
 						senderCity: p.departure.city,
 						shipmentNumber: p.trackingNumbers[0],
 						shipmentDate: new Date(p.savedDateTime),
 						status: self.getPostiStatus(p.shipmentPhase),
 						rawStatus: p.shipmentPhase,
-						latestEvent: (p.events.slice(-1)[0].eventShortName.find(x => x.lang == config.language) || 
-									  p.events.slice(-1)[0].eventShortName.find(x => x.lang == 'en')).value,
+						latestEvent: (p.events.slice(-1)[0].eventDescription.find(x => x.lang == config.language) || 
+									  p.events.slice(-1)[0].eventDescription.find(x => x.lang == 'en')).value,
 						latestEventCountry: p.events.slice(-1)[0].eventLocation.country,
 						latestEventCity: p.events.slice(-1)[0].eventLocation.city,
 						latestEventDate: new Date(p.events.slice(-1)[0].timestamp)
@@ -277,7 +277,7 @@ module.exports = NodeHelper.create({
 		}
 
 		this.parcels = this.parcels.sort(function(a, b) {
-			return a.status != b.status ? b.status - a.status : b.latestEventDate.getTime() - a.latestEventDate.getTime();
+			return b.latestEventDate.getTime() - a.latestEventDate.getTime();
 		});
 		
 		if (config.limit > 0) {
