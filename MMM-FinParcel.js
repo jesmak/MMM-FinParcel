@@ -13,12 +13,14 @@ Module.register('MMM-FinParcel',{
 		statusTranslations: ["Delivered", "Info received", "Pending", "In transit", "Being delivered", "Ready for pickup", "Exception"],
 		loadingTranslation: "Loading parcel data...",
 		noParcelsTranslation: "No parcel data found",
+		errorTranslation: "Error loading parcel data",
 		language: "en",
 		showFromTo: true
     },
 
 	parcels: [],
 	loaded: false,
+	error: false,
 	
 	parcelIcons: [ 
 		"fa fa-check-square-o fa-fw", "fa fa-file-text-o fa-fw", "fa fa-clock-o fa-fw", "fa fa-exchange fa-fw", "fa fa-truck fa-fw", 
@@ -51,11 +53,20 @@ Module.register('MMM-FinParcel',{
 	},
 
     socketNotificationReceived: function (notification, payload) {
-		if (notification === "MMM-FinParcel_DATA_RECEIVED") {
-			this.loaded = true;
-            const isUpdated = JSON.stringify(this.parcels) !== JSON.stringify(payload);
-            if (isUpdated) {
+		if (notification === "MMM-FinParcel_LOGGER") {
+			console.log(payload);
+		}
+		else if (notification === "MMM-FinParcel_ERROR") {
+			console.error(payload);
+            this.parcels = [];
+			this.error = true;
+            this.updateDom();
+		}
+		else if (notification === "MMM-FinParcel_DATA_RECEIVED") {
+            if (this.loaded == false || JSON.stringify(this.parcels) !== JSON.stringify(payload)) {
+				this.loaded = true;
                 this.parcels = payload;
+				this.error = false;
                 this.updateDom();
             }
         }
@@ -67,6 +78,11 @@ Module.register('MMM-FinParcel',{
 		
 		if (!this.loaded) {
 			wrapper.innerHTML = this.config.loadingTranslation;
+			wrapper.classList.add("light", "small");
+			return wrapper;
+		}
+		else if (this.error) {
+			wrapper.innerHTML = this.config.errorTranslation;
 			wrapper.classList.add("light", "small");
 			return wrapper;
 		}

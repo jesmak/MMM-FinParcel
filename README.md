@@ -42,6 +42,7 @@ then add the module to your MagicMirror's configuration. Here is an example:
                 language: 'en|fi|sv',
                 loadingTranslation: String,
                 noParcelsTranslation: String,
+                errorTranslation: String,
                 showFromTo: Boolean
             }
         }
@@ -66,4 +67,5 @@ You should configure either a Posti or a Matkahuolto account (or both) for it to
 | language | Language used when getting delivery statuses. Can be either `en`, `fi` or `sv`. | `en` | No |
 | loadingTranslation | Translation for when module has just started and parcel data is still loading. | `Loading parcel data...` | No |
 | noParcelsTranslation | Translation for when parcel data has been loaded but there are no results. | `No parcel data found` | No |
+| errorTranslation | Translation for when there is an error loading parcel data. | `Error loading parcel data` | No |
 | showFromTo | Whether to show sender and receiver for packages. | `true` | No |

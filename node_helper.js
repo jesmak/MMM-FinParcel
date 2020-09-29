@@ -8,7 +8,6 @@ module.exports = NodeHelper.create({
     postiQuery: '{"query":"{ shipment { courier { country, name } shipmentType shipmentNumber grossWeight height width depth volume parties { name role location { city country } } departure { city country } destination { city country } trackingNumbers events { eventLocation { city country } eventShortName { lang value } eventDescription { lang value } timestamp } status { statusCode description { lang value } } shipmentPhase estimatedDeliveryTime lastPickupDate savedDateTime updatedDateTime confirmedEarliestDeliveryTime confirmedLatestDeliveryTime } }"}',	
 	postiLoginUrl: 'https://oma.posti.fi/api/auth/v1/login',
 	postiQueryUrl: 'https://oma.posti.fi/graphql/v2',
-	querying: false,
 	postiToken: null,
 	matkahuoltoToken: null,
 	matkahuoltoLoginUrl: 'https://wwwservice.matkahuolto.fi/user/auth',
@@ -25,9 +24,10 @@ module.exports = NodeHelper.create({
 
         const self = this;
 
-		if (notification === "MMM-FinParcel_UPDATE_DATA" && this.querying == false) {
+		self.sendSocketNotification('MMM-FinParcel_LOGGER', 'Update notification received');
 
-			this.querying = true;
+		if (notification === "MMM-FinParcel_UPDATE_DATA") {
+
 			this.parcels = [];
 			
 			var postiEnabled = payload.postiUserName && payload.postiUserName.length && payload.postiPassword && payload.postiPassword.length;
@@ -47,15 +47,19 @@ module.exports = NodeHelper.create({
 		
         const self = this;
 
+		self.sendSocketNotification('MMM-FinParcel_LOGGER', 'Updating Posti parcels...');
+
 		if (this.postiToken == null) {
+		
+			self.sendSocketNotification('MMM-FinParcel_LOGGER', 'Authenticating to Posti API');
 		
 			var options = { uri: this.postiLoginUrl, method: 'POST', json: { user: config.postiUserName, password: config.postiPassword } };
 
 			request(options, function (error, response, body) {
 				
 				if (error) {
+					self.sendSocketNotification('MMM-FinParcel_ERROR', { error: error, response: response, body: body });
 					console.error(error);
-					self.querying = false;
 				}
 				else {
 					self.postiToken = body;
@@ -72,6 +76,8 @@ module.exports = NodeHelper.create({
 
 		var self = this;
 
+		self.sendSocketNotification('MMM-FinParcel_LOGGER', 'Loading parcel data from Posti API');
+
 		var options = { 
 			uri: self.postiQueryUrl, 
 			method: 'POST', 
@@ -84,10 +90,11 @@ module.exports = NodeHelper.create({
 			self.postiToken = null;
 
 			if (error) {
+				self.sendSocketNotification('MMM-FinParcel_ERROR', { error: error, response: response, body: body });
 				console.error(error);
-				self.querying = false;
 			}
 			else {
+				self.sendSocketNotification('MMM-FinParcel_LOGGER', 'Parcel data loaded from Posti API');
 				var postiParcels = JSON.parse(body);
 				self.parcels = postiParcels.data.shipment.map(p => { 
 					return {
@@ -95,7 +102,7 @@ module.exports = NodeHelper.create({
 						destination: (p.parties.find(x => x.role == 'DELIVERY') || p.parties.find(x => x.role == 'CONSIGNEE')).name.join(", "), 
 						receiverCity: p.destination.city,
 						senderCity: p.departure.city,
-						shipmentNumber: p.trackingNumbers[0],
+						shipmentNumber: p.trackingNumbers[0] || p.shipmentNumber,
 						shipmentDate: new Date(p.savedDateTime),
 						status: self.getPostiStatus(p.shipmentPhase),
 						rawStatus: p.shipmentPhase,
@@ -111,7 +118,6 @@ module.exports = NodeHelper.create({
 					self.getMatkahuoltoParcels(config);
 				}
 				else {
-					self.querying = false;
 					self.sendParcelsNotification(config);
 				}
 			}
@@ -126,6 +132,8 @@ module.exports = NodeHelper.create({
 				return 2;
 			case 'IN_TRANSPORT':
 				return 3;
+			case 'IN_DELIVERY':
+				return 4;
 			case 'READY_FOR_PICKUP':
 				return 5;
 			case 'RETURNED_TO_SENDER':
@@ -141,15 +149,19 @@ module.exports = NodeHelper.create({
 
 		const self = this;
 
+		self.sendSocketNotification('MMM-FinParcel_LOGGER', 'Updating Matkahuolto parcels...');
+
 		if (this.matkahuoltoToken == null) {
 		
+			self.sendSocketNotification('MMM-FinParcel_LOGGER', 'Authenticating to Matkahuolto API');
+
 			var options = { uri: this.matkahuoltoLoginUrl, method: 'POST', json: { username: config.matkahuoltoUserName, password: config.matkahuoltoPassword } };
 
 			request(options, function (error, response, body) {
 				
 				if (error) {
+					self.sendSocketNotification('MMM-FinParcel_ERROR', { error: error, response: response, body: body });
 					console.error(error);
-					self.querying = false;
 				}
 				else {
 					self.matkahuoltoToken = body.AuthenticationResult.AccessToken;
@@ -166,6 +178,8 @@ module.exports = NodeHelper.create({
 		
 		const self = this;
 		
+		self.sendSocketNotification('MMM-FinParcel_LOGGER', 'Loading parcel data from Matkahuolto API');
+
 		var options = { 
 			uri: this.matkahuoltoQueryUrl, 
 			method: 'GET', 
@@ -175,11 +189,14 @@ module.exports = NodeHelper.create({
 		request(options, function (error, response, body) {
 
 			if (error) {
+				self.sendSocketNotification('MMM-FinParcel_ERROR', { error: error, response: response, body: body });
 				console.error(error);
 				self.matkahuoltoToken = null;
-				self.querying = false;
 			}
 			else {
+
+				self.sendSocketNotification('MMM-FinParcel_LOGGER', 'Parcel data loaded from Matkahuolto API');
+
 				let matkahuoltoParcels = JSON.parse(body).shipments.map(p => { 
 					return {
 						sender: p.senderName, 
@@ -193,9 +210,16 @@ module.exports = NodeHelper.create({
 					};
 				});
 
-				matkahuoltoParcels.forEach(function(parcel) {
-					self.queryMatkahuoltoParcelDetails(parcel, matkahuoltoParcels, config);
-				});
+				if (matkahuoltoParcels.length > 0) {
+					matkahuoltoParcels.forEach(function(parcel) {
+						self.queryMatkahuoltoParcelDetails(parcel, matkahuoltoParcels, config);
+					});
+				}
+				else {
+					self.sendSocketNotification('MMM-FinParcel_LOGGER', 'Finished loading all parcel details from Matkahuolto API');
+					self.sendParcelsNotification(config);
+					self.matkahuoltoToken = null;
+				}
 			}
 		});
 	},
@@ -204,6 +228,8 @@ module.exports = NodeHelper.create({
 	
 		const self = this;
 		
+		self.sendSocketNotification('MMM-FinParcel_LOGGER', 'Loading parcel details from Matkahuolto API for shipment ' + parcel.shipmentNumber);
+
 		var options = { 
 			uri: this.matkahuoltoDetailsQueryUrl + parcel.shipmentNumber + this.matkahuoltoLanguageParameter + config.language, 
 			method: 'GET', 
@@ -215,9 +241,11 @@ module.exports = NodeHelper.create({
 			parcel.detailsRetrieved = true;
 
 			if (error) {
+				self.sendSocketNotification('MMM-FinParcel_ERROR', { error: error, response: response, body: body });
 				console.error(error);
 			}
 			else {
+				self.sendSocketNotification('MMM-FinParcel_LOGGER', 'Parcel details loaded from Matkahuolto API for shipment ' + parcel.shipmentNumber);
 				let matkahuoltoParcel = JSON.parse(body);
 				parcel.latestEvent = matkahuoltoParcel.trackingEvents[0].description,
 				parcel.latestEventCity = matkahuoltoParcel.trackingEvents[0].place,
@@ -226,9 +254,9 @@ module.exports = NodeHelper.create({
 			}
 			
 			if (parcels.every(p => p.detailsRetrieved)) {
+				self.sendSocketNotification('MMM-FinParcel_LOGGER', 'Finished loading all parcel details from Matkahuolto API');
 				self.parcels = self.parcels.concat(parcels);
 				self.sendParcelsNotification(config);
-				self.querying = false;
 				self.matkahuoltoToken = null;
 			}
 		});	
@@ -270,9 +298,11 @@ module.exports = NodeHelper.create({
 	
 	sendParcelsNotification: function(config) {
 		
+		this.sendSocketNotification('MMM-FinParcel_LOGGER', 'Sending update notification to UI');
+		
 		if (config.showDeliveredDays >= 0) {
 			this.parcels = this.parcels.filter(x => 
-				x.status != 1 ||
+				x.status != 0 ||
 				Math.round((new Date().getTime() - x.latestEventDate.getTime()) / (1000 * 60 * 60 * 24)) < config.showDeliveredDays);
 		}
 
