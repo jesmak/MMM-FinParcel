@@ -1,3 +1,5 @@
+NOTE: I am no longer using Magic Mirror, which means that this repository is basically abandoned. If anyone wants to adopt this project, feel free to do so, but I will not be answering to pull requests or bug reports anymore. Consider this project as dead in the water.
+
 # MMM-FinParcel
 
 `MMM-FinParcel` is a module for [MagicMirror](https://github.com/MichMich/MagicMirror) that displays the delivery status of packages from Finnish Posti and Matkahuolto. You must have an account on [Posti](https://oma.posti.fi/) and/or [Matkahuolto](https://www.matkahuolto.fi/). Configure your account credentials to module settings and packages are automatically tracked. No need to enter any tracking codes for your packages!
